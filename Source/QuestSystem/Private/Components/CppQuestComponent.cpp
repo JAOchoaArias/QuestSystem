@@ -1,4 +1,6 @@
 #include "Public/Components/CppQuestComponent.h"
+#include "Public/GameState/CppQuestGameState.h"
+#include "Engine/World.h"
 #include "Public/CppQuestDefinition.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCppQuest, Log, All);
@@ -11,6 +13,30 @@ UCppQuestComponent::UCppQuestComponent()
 void UCppQuestComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	if (UWorld* World = GetWorld())
+	{
+		if (ACppQuestGameState* QuestGameState = World->GetGameState<ACppQuestGameState>())
+		{
+			QuestGameState->OnGameplayObjectiveEvent.AddUniqueDynamic(this, &UCppQuestComponent::HandleGameplayObjective);
+		}
+		else
+		{
+			UE_LOG(LogCppQuest, Warning, TEXT("El GameState no es ACppQuestGameState: revisar el GameMode del mapa"));
+		}
+	}
+}
+
+void UCppQuestComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (ACppQuestGameState* QuestGameState = World->GetGameState<ACppQuestGameState>())
+		{
+			QuestGameState->OnGameplayObjectiveEvent.RemoveDynamic(this, &UCppQuestComponent::HandleGameplayObjective);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 int32 UCppQuestComponent::FindQuestIndex(FName QuestID) const

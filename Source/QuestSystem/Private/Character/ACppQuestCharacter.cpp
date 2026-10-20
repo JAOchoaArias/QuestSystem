@@ -1,32 +1,79 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Public/Character/ACppQuestCharacter.h"
+#include "Public/Components/CppQuestComponent.h"
+#include "Public/Widgets/CppQuestTrackerWidget.h"
+#include "Public/Interfaces/CppInteractable.h"
+#include "Components/SphereComponent.h"
+#include "EnhancedInputComponent.h"
+#include "InputAction.h"
+#include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
-
-// Sets default values
-AACppQuestCharacter::AACppQuestCharacter()
+ACppQuestCharacter::ACppQuestCharacter()
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	QuestComponent = CreateDefaultSubobject<UCppQuestComponent>(TEXT("QuestComponent"));
+
+	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
+	InteractionSphere->SetupAttachment(RootComponent);
+	InteractionSphere->InitSphereRadius(200.f);
+	InteractionSphere->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	InteractionSphere->SetGenerateOverlapEvents(true);
 }
 
-// Called when the game starts or when spawned
-void AACppQuestCharacter::BeginPlay()
+void ACppQuestCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (PC && QuestTrackerClass)
+	{
+		QuestTrackerWidget = CreateWidget<UCppQuestTrackerWidget>(PC, QuestTrackerClass);
+		if (QuestTrackerWidget)
+		{
+			QuestTrackerWidget->AddToViewport();
+			QuestTrackerWidget->InitTracker(QuestComponent);
+		}
+	}
 }
 
-// Called every frame
-void AACppQuestCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-// Called to bind functionality to input
-void AACppQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ACppQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		if (InteractAction)
+		{
+			EnhancedInput->BindAction(InteractAction, ETriggerEvent::Started, this, &ACppQuestCharacter::TryInteract);
+		}
+	}
 }
 
+void ACppQuestCharacter::TryInteract()
+{
+	TArray<AActor*> OverlappingActors;
+	InteractionSphere->GetOverlappingActors(OverlappingActors);
+
+	AActor* Closest = nullptr;
+	float ClosestDistSq = TNumericLimits<float>::Max();
+
+	for (AActor* Actor : OverlappingActors)
+	{
+		if (!IsValid(Actor) || !Actor->Implements<UCppInteractable>())
+		{
+			continue;
+		}
+
+		const float DistSq = FVector::DistSquared(Actor->GetActorLocation(), GetActorLocation());
+		if (DistSq < ClosestDistSq)
+		{
+			ClosestDistSq = DistSq;
+			Closest = Actor;
+		}
+	}
+
+	if (Closest)
+	{
+		ICppInteractable::Execute_Interact(Closest, this);
+	}
+}

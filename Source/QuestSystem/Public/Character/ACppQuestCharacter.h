@@ -1,28 +1,45 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
-#include "QuestSystemCharacter.h"
+#include "QuestSystemCharacter.h" // <- ajustar
 #include "ACppQuestCharacter.generated.h"
 
+class UCppQuestComponent;
+class UCppQuestTrackerWidget;
+class USphereComponent;
+class UInputAction;
+
 UCLASS()
-class QUESTSYSTEM_API AACppQuestCharacter : public AQuestSystemCharacter
+class QUESTSYSTEM_API ACppQuestCharacter : public AQuestSystemCharacter // <- ajustar
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
-	AACppQuestCharacter();
+	ACppQuestCharacter();
+
+	UCppQuestComponent* GetQuestComponent() const { return QuestComponent; }
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+	TObjectPtr<UCppQuestComponent> QuestComponent;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+	TObjectPtr<USphereComponent> InteractionSphere;
+
+	/** Se asigna en el Blueprint hijo (IA_Interact) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> InteractAction;
+
+	/** Se asigna en el Blueprint hijo (WBP_QuestTrackerCPP) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|UI")
+	TSubclassOf<UCppQuestTrackerWidget> QuestTrackerClass;
+
+private:
+	void TryInteract();
+
+	UPROPERTY()
+	TObjectPtr<UCppQuestTrackerWidget> QuestTrackerWidget;
 };
