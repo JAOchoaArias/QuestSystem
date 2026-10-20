@@ -1,5 +1,6 @@
 #include "Public/Actors/CppObjectiveActor.h"
 #include "Engine/World.h"
+#include "Components/CapsuleComponent.h"
 #include "Public/Character/ACppQuestCharacter.h"
 #include "Public/GameState/CppQuestGameState.h"
 
@@ -23,6 +24,12 @@ bool ACppObjectiveActor::ReportObjective()
 
 	QuestGameState->ReportGameplayObjective(ObjectiveType, TargetID, Amount);
 	return true;
+}
+
+bool ACppObjectiveActor::IsQuestPlayerBody(AActor* Actor, UPrimitiveComponent* Component) const
+{
+	const ACppQuestCharacter* Character = Cast<ACppQuestCharacter>(Actor);
+	return Character && Component == Character->GetCapsuleComponent();
 }
 
 bool ACppObjectiveActor::IsQuestPlayer(const AActor* Actor) const

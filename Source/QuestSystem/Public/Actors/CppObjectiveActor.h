@@ -16,6 +16,8 @@ public:
 protected:
 	
 	bool ReportObjective();
+	
+	bool IsQuestPlayerBody(AActor* Actor, UPrimitiveComponent* Component) const;
 
 	bool IsQuestPlayer(const AActor* Actor) const;
 

@@ -6,6 +6,8 @@
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
 #include "Blueprint/UserWidget.h"
+#include "Public/Actors/CppEnemyDummy.h"
+#include "GameFramework/DamageType.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -46,6 +48,10 @@ void ACppQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		{
 			EnhancedInput->BindAction(InteractAction, ETriggerEvent::Started, this, &ACppQuestCharacter::TryInteract);
 		}
+		if (AttackAction)
+		{
+			EnhancedInput->BindAction(AttackAction, ETriggerEvent::Started, this, &ACppQuestCharacter::TryAttack);
+		}
 	}
 }
 
@@ -75,5 +81,15 @@ void ACppQuestCharacter::TryInteract()
 	if (Closest)
 	{
 		ICppInteractable::Execute_Interact(Closest, this);
+	}
+}
+void ACppQuestCharacter::TryAttack()
+{
+	TArray<AActor*> NearbyEnemies;
+	InteractionSphere->GetOverlappingActors(NearbyEnemies, ACppEnemyDummy::StaticClass());
+
+	for (AActor* Enemy : NearbyEnemies)
+	{
+		UGameplayStatics::ApplyDamage(Enemy, AttackDamage, GetController(), this, UDamageType::StaticClass());
 	}
 }
